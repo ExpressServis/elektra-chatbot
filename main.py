@@ -1,4 +1,24 @@
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from chat import chat_with_openai
+from models import create_tables
+
+app = FastAPI()
+
+# Připojení složky static/
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.on_event("startup")
+async def startup():
+    create_tables()
+
+@app.post("/chat")
+async def chat_endpoint(request: Request):
+    data = await request.json()
+    user_message = data.get("message", "")
+    response = await chat_with_openai(user_message)
+    return {"response": response}
 
 @app.get("/chat-widget", response_class=HTMLResponse)
 async def chat_widget():
