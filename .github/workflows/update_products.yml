@@ -2,8 +2,8 @@ name: Update Products
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # Každý den v 1:00 UTC (tj. 2:00 ráno v zimě, 3:00 v létě)
-  workflow_dispatch:      # Možnost ručně spustit
+    - cron: '0 1 * * *'     # Spustí každý den v 1:00 UTC (2:00 ráno u nás)
+  workflow_dispatch:         # Možnost ručně spustit workflow v GitHubu
 
 jobs:
   update:
