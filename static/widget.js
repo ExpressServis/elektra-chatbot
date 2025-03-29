@@ -7,6 +7,6 @@
   iframe.style.height = "480px";
   iframe.style.border = "none";
   iframe.style.zIndex = "9999";
-  iframe.src = "https://" + window.location.hostname + "/chat-widget";
+  iframe.src = "https://elektra-chatbot.onrender.com/chat-widget";
   document.body.appendChild(iframe);
 })();
