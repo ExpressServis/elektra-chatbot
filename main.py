@@ -6,7 +6,7 @@ from models import create_tables
 
 app = FastAPI()
 
-# Připojení složky static/
+# Připojení složky se statickými soubory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
@@ -17,7 +17,8 @@ async def startup():
 async def chat_endpoint(request: Request):
     data = await request.json()
     user_message = data.get("message", "")
-    response = await chat_with_openai(user_message)
+    # Volání synchronní funkce bez await
+    response = chat_with_openai(user_message)
     return {"response": response}
 
 @app.get("/chat-widget", response_class=HTMLResponse)
