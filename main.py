@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from chat import chat_with_openai
 from models import create_tables
@@ -15,11 +15,14 @@ async def startup():
 
 @app.post("/chat")
 async def chat_endpoint(request: Request):
-    data = await request.json()
-    user_message = data.get("message", "")
-    # Volání synchronní funkce bez await
-    response = chat_with_openai(user_message)
-    return {"response": response}
+    try:
+        data = await request.json()
+        user_message = data.get("message", "")
+        response = chat_with_openai(user_message)
+        return {"response": response}
+    except Exception as e:
+        # V případě chyby vrátíme chybovou zprávu jako JSON
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/chat-widget", response_class=HTMLResponse)
 async def chat_widget():
@@ -39,7 +42,11 @@ async def chat_widget():
             });
             const data = await res.json();
             document.getElementById('chat').innerHTML += "<div><b>Ty:</b> " + msg + "</div>";
-            document.getElementById('chat').innerHTML += "<div><b>Elektra:</b> " + data.response + "</div>";
+            if(data.response) {
+              document.getElementById('chat').innerHTML += "<div><b>Elektra:</b> " + data.response + "</div>";
+            } else {
+              document.getElementById('chat').innerHTML += "<div style='color:red;'><b>Error:</b> " + data.error + "</div>";
+            }
             document.getElementById('msg').value = '';
           } catch (error) {
             console.error("Error in send function:", error);
@@ -57,4 +64,3 @@ async def chat_widget():
     </body>
     </html>
     """
-    
