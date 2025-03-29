@@ -1,1 +1,28 @@
+name: Update Products
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Každý den v 1:00 UTC (tj. 2:00 ráno v zimě, 3:00 v létě)
+  workflow_dispatch:      # Možnost ručně spustit
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run update script
+        run: |
+          python update_products.py
 
