@@ -1,0 +1,35 @@
+name: Update Pages
+
+on:
+  schedule:
+    - cron: '15 1 * * *'  # každý den ve 2:15 ráno našeho času
+  workflow_dispatch:      # možnost ručně spustit akci
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install beautifulsoup4
+
+      - name: Run page update script
+        run: python scripts/update_pages.py
+
+      - name: Commit updated pages.json
+        run: |
+          git config --global user.name "Elektra Bot"
+          git config --global user.email "bot@elektra.local"
+          git add data/pages.json
+          git commit -m "📝 Automatická aktualizace stránek" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
