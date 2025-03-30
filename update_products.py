@@ -11,25 +11,32 @@ FEED_URLS = {
 }
 
 def parse_feed(url):
-    """
-    Stáhne XML feed z URL, analyzuje ho a vrátí slovník produktů,
-    kde klíčem je EAN (nebo PRODUCTNO) a hodnotou je slovník s údaji produktu.
-    """
     response = requests.get(url)
     root = ET.fromstring(response.content)
     products = {}
-    
-    # Přizpůsobte xpath podle struktury feedu. 
-    # Tento příklad předpokládá, že produkty jsou v elementech <item>
+
+    # Google feed – namespace
+    namespaces = {'g': 'http://base.google.com/ns/1.0'}
+
     for item in root.findall(".//item"):
-        # Zkus najít EAN nebo PRODUCTNO
-        ean = item.findtext("EAN")
-        product_no = item.findtext("PRODUCTNO")
-        key = ean if ean and ean.strip() != "" else product_no
+        # Google
+        ean = item.findtext("g:gtin", default=None, namespaces=namespaces)
+        product_no = item.findtext("g:mpn", default=None, namespaces=namespaces)
+
+        # Heureka a Zbozi.cz
+        if not ean:
+            ean = item.findtext("EAN")
+        if not product_no:
+            product_no = item.findtext("PRODUCTNO")
+
+        # fallback (např. ITEM_ID)
+        if not product_no:
+            product_no = item.findtext("ITEM_ID")
+
+        key = ean or product_no
         if not key:
-            continue  # přeskočí produkty bez identifikátoru
-        
-        # Vytvoříme slovník se všemi podřízenými elementy
+            continue
+
         product_data = {child.tag: child.text for child in item}
         products[key] = product_data
 
