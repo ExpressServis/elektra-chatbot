@@ -25,4 +25,14 @@ jobs:
       - name: Run update script
         run: |
           python update_products.py
+          
+      - name: Commit updated products.json
+        run: |
+          git config --global user.name "Elektra Bot"
+          git config --global user.email "bot@elektra.local"
+          git add data/products.json
+          git commit -m "Automatická aktualizace produktů 🛠️" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+
+          
 
