@@ -17,7 +17,7 @@
   bubble.style.fontFamily = "sans-serif";
 
   const img = document.createElement("img");
-  img.src = "https://www.express-servis.cz/assets/elektra-icon.jpg"; // ← nahraď reálnou cestou k obrázku Elektry
+  img.src = "https://www.express-servis.cz/assets/elektra-icon.png"; // ← nahraď reálnou cestou k obrázku Elektry
   img.alt = "Elektra";
   img.style.width = "32px";
   img.style.height = "32px";
