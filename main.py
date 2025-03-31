@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from chat import chat_with_openai
@@ -15,13 +15,17 @@ async def startup():
 
 @app.post("/chat")
 async def chat_endpoint(request: Request):
+    # 🔒 Ochrana: povolíme pouze požadavky z tvé domény
+    referer = request.headers.get("referer", "")
+    if not referer.startswith("https://www.express-servis.cz"):
+        raise HTTPException(status_code=403, detail="Přístup odepřen")
+
     try:
         data = await request.json()
         user_message = data.get("message", "")
         response = chat_with_openai(user_message)
         return {"response": response}
     except Exception as e:
-        # V případě chyby vrátíme chybovou zprávu jako JSON
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/chat-widget", response_class=HTMLResponse)
