@@ -16,9 +16,9 @@ async def startup():
 @app.post("/chat")
 async def chat_endpoint(request: Request):
     # 🔒 Ochrana: povolíme pouze požadavky z tvé domény
-    referer = request.headers.get("referer", "")
-    if not referer.startswith("https://www.express-servis.cz"):
-        raise HTTPException(status_code=403, detail="Přístup odepřen")
+    # referer = request.headers.get("referer", "")
+    # if not referer.startswith("https://www.express-servis.cz"):
+    #    raise HTTPException(status_code=403, detail="Přístup odepřen")
 
     try:
         data = await request.json()
