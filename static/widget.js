@@ -1,3 +1,4 @@
+<script>
 (function () {
   // Vytvoření bubliny
   const bubble = document.createElement("div");
@@ -34,26 +35,52 @@
   const box = document.createElement("div");
   box.id = "chat-box";
   box.style.position = "fixed";
-  box.style.bottom = "80px";
+  box.style.bottom = "20px";
   box.style.right = "20px";
   box.style.width = "350px";
-  box.style.height = "450px";
+  box.style.height = "0";
   box.style.background = "white";
   box.style.borderRadius = "20px";
   box.style.boxShadow = "0 0 15px rgba(0,0,0,0.3)";
-  box.style.display = "none";
+  box.style.display = "flex";
   box.style.flexDirection = "column";
   box.style.zIndex = "9999";
   box.style.overflow = "hidden";
+  box.style.transition = "height 0.4s ease";
+  box.style.visibility = "hidden";
 
   box.innerHTML = `
-    <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;">Elektra 💬</div>
+    <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
+      Elektra 💬
+      <span id="chat-close" style="cursor:pointer;font-size:18px;">×</span>
+    </div>
     <div id="chat-messages" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
     <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:5px;">
       <input id="chat-input" type="text" placeholder="Napiš dotaz..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;">
       <button id="chat-send" style="padding:8px 12px;background:#000;color:white;border:none;border-radius:8px;cursor:pointer;">Odeslat</button>
     </div>
   `;
+
+  let isOpen = false;
+
+  // Funkce pro zobrazení/skrývání
+  function toggleChat() {
+    const chat = document.getElementById("chat-box");
+    if (!isOpen) {
+      chat.style.visibility = "visible";
+      chat.style.height = "450px";
+      const chatMessages = document.getElementById("chat-messages");
+      if (chatMessages.innerHTML.trim() === "") {
+        chatMessages.innerHTML = `<div><strong>Elektra:</strong> Ahoj! Jak vám mohu pomoci? 😊</div>`;
+      }
+    } else {
+      chat.style.height = "0";
+      setTimeout(() => {
+        chat.style.visibility = "hidden";
+      }, 400);
+    }
+    isOpen = !isOpen;
+  }
 
   // Funkce pro odeslání zprávy
   async function sendChatMessage() {
@@ -85,16 +112,16 @@
   }
 
   // Události
-  bubble.addEventListener("click", () => {
-    box.style.display = box.style.display === "none" ? "flex" : "none";
-  });
-
+  bubble.addEventListener("click", toggleChat);
   document.body.appendChild(bubble);
   document.body.appendChild(box);
 
   document.addEventListener("click", (e) => {
     if (e.target && e.target.id === "chat-send") {
       sendChatMessage();
+    }
+    if (e.target && e.target.id === "chat-close") {
+      toggleChat();
     }
   });
 
@@ -104,3 +131,4 @@
     }
   });
 })();
+</script>
