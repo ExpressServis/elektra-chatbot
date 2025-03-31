@@ -1,53 +1,51 @@
 import os
-import openai
 import json
+import openai
 from dotenv import load_dotenv
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Načti produkty ze souboru
+# Načti produkty
 try:
     with open("data/products.json", "r", encoding="utf-8") as f:
-        products = json.load(f)
-except FileNotFoundError:
-    products = []
+        product_data = json.load(f)
+except Exception:
+    product_data = []
 
-def search_products(query):
-    query = query.lower()
-    results = []
+# Načti statické stránky
+try:
+    with open("data/pages.json", "r", encoding="utf-8") as f:
+        page_data = json.load(f)
+except Exception:
+    page_data = []
 
-    for product in products:
-        text_fields = [
-            product.get("title", ""),
-            product.get("description", ""),
-            product.get("brand", ""),
-            product.get("category", ""),
-            product.get("ean", ""),
-            product.get("sku", ""),
-        ]
-        combined_text = " ".join(text_fields).lower()
-        if query in combined_text:
-            results.append(product)
+def find_relevant_context(message):
+    context_parts = []
+    
+    # Vyhledání v produktech
+    for item in product_data:
+        item_text = json.dumps(item, ensure_ascii=False)
+        if any(word.lower() in item_text.lower() for word in message.split()):
+            context_parts.append(item_text)
 
-    return results[:5]  # max 5 výsledků
+    # Vyhledání ve stránkách
+    for page in page_data:
+        if any(word.lower() in page["text"].lower() for word in message.split()):
+            context_parts.append(page["text"])
+
+    # Zkrácení kontextu pokud je příliš dlouhý
+    context = "\n\n".join(context_parts[:5])  # vezmeme max 5 výsledků
+    return context
 
 def chat_with_openai(message):
-    matched = search_products(message)
-    if matched:
-        response = "Našel jsem tyto produkty:\n\n"
-        for p in matched:
-            response += f"📦 **{p.get('title', 'Bez názvu')}**\n"
-            response += f"💰 Cena: {p.get('price', 'Neznámá')} Kč\n"
-            response += f"🔗 [Otevřít produkt]({p.get('link', '#')})\n\n"
-        return response.strip()
+    context = find_relevant_context(message)
 
-    # fallback na OpenAI
-    completion = openai.ChatCompletion.create(
+    response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra."},
-            {"role": "user", "content": message}
+            {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{context}"}
         ]
     )
-    return completion.choices[0].message.content.strip()
+    return response.choices[0].message.content.strip()
