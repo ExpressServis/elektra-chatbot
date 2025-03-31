@@ -1,134 +1,122 @@
-<script>
 (function () {
-  // Vytvoření bubliny
-  const bubble = document.createElement("div");
-  bubble.id = "chat-bubble";
-  bubble.style.position = "fixed";
-  bubble.style.bottom = "20px";
-  bubble.style.right = "20px";
-  bubble.style.background = "white";
-  bubble.style.borderRadius = "50px";
-  bubble.style.padding = "10px 15px";
-  bubble.style.boxShadow = "0 0 10px rgba(0,0,0,0.2)";
-  bubble.style.display = "flex";
-  bubble.style.alignItems = "center";
-  bubble.style.gap = "10px";
-  bubble.style.cursor = "pointer";
-  bubble.style.zIndex = "9999";
+  document.addEventListener("DOMContentLoaded", () => {
+    // Bublina
+    const bubble = document.createElement("div");
+    bubble.id = "chat-bubble";
+    bubble.style = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 50px;
+      padding: 10px 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      z-index: 9999;
+      font-family: sans-serif;
+    `;
 
-  const img = document.createElement("img");
-  img.src = "https://www.express-servis.cz/static/elektra.png";
-  img.alt = "Elektra";
-  img.style.width = "32px";
-  img.style.height = "32px";
-  img.style.borderRadius = "50%";
+    const img = document.createElement("img");
+    img.src = "https://www.express-servis.cz/static/elektra-icon.png";
+    img.alt = "Elektra";
+    img.style = "width: 32px; height: 32px; border-radius: 50%;";
 
-  const text = document.createElement("span");
-  text.innerText = "Zeptejte se mě!";
-  text.style.fontWeight = "bold";
-  text.style.color = "#333";
+    const text = document.createElement("span");
+    text.innerText = "Zeptejte se mě!";
+    text.style = "font-weight: bold; color: #333;";
 
-  bubble.appendChild(img);
-  bubble.appendChild(text);
+    bubble.appendChild(img);
+    bubble.appendChild(text);
+    document.body.appendChild(bubble);
 
-  // Chatovací okno
-  const box = document.createElement("div");
-  box.id = "chat-box";
-  box.style.position = "fixed";
-  box.style.bottom = "20px";
-  box.style.right = "20px";
-  box.style.width = "350px";
-  box.style.height = "0";
-  box.style.background = "white";
-  box.style.borderRadius = "20px";
-  box.style.boxShadow = "0 0 15px rgba(0,0,0,0.3)";
-  box.style.display = "flex";
-  box.style.flexDirection = "column";
-  box.style.zIndex = "9999";
-  box.style.overflow = "hidden";
-  box.style.transition = "height 0.4s ease";
-  box.style.visibility = "hidden";
+    // Chat box
+    const box = document.createElement("div");
+    box.id = "chat-box";
+    box.style = `
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 350px;
+      height: 460px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      display: none;
+      flex-direction: column;
+      z-index: 9999;
+      overflow: hidden;
+      animation: fadeIn 0.3s ease;
+    `;
 
-  box.innerHTML = `
-    <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
-      Elektra 💬
-      <span id="chat-close" style="cursor:pointer;font-size:18px;">×</span>
-    </div>
-    <div id="chat-messages" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
-    <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:5px;">
-      <input id="chat-input" type="text" placeholder="Napiš dotaz..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;">
-      <button id="chat-send" style="padding:8px 12px;background:#000;color:white;border:none;border-radius:8px;cursor:pointer;">Odeslat</button>
-    </div>
-  `;
+    box.innerHTML = `
+      <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
+        <span>Elektra 💬</span>
+        <span id="chat-close" style="cursor:pointer;font-size:18px;">✖</span>
+      </div>
+      <div id="chat-messages" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
+      <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:5px;">
+        <input id="chat-input" type="text" placeholder="Napiš dotaz..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;">
+        <button id="chat-send" style="padding:8px 12px;background:#000;color:white;border:none;border-radius:8px;cursor:pointer;">Odeslat</button>
+      </div>
+    `;
+    document.body.appendChild(box);
 
-  let isOpen = false;
+    // Chat akce
+    bubble.addEventListener("click", () => {
+      box.style.display = "flex";
+      document.getElementById("chat-messages").innerHTML += `<div><strong>Elektra:</strong> Ahoj! Na co se chceš zeptat? 😊</div>`;
+    });
 
-  // Funkce pro zobrazení/skrývání
-  function toggleChat() {
-    const chat = document.getElementById("chat-box");
-    if (!isOpen) {
-      chat.style.visibility = "visible";
-      chat.style.height = "450px";
-      const chatMessages = document.getElementById("chat-messages");
-      if (chatMessages.innerHTML.trim() === "") {
-        chatMessages.innerHTML = `<div><strong>Elektra:</strong> Ahoj! Jak vám mohu pomoci? 😊</div>`;
+    document.addEventListener("click", (e) => {
+      if (e.target.id === "chat-send") sendMessage();
+      if (e.target.id === "chat-close") box.style.display = "none";
+    });
+
+    document.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && document.activeElement.id === "chat-input") {
+        sendMessage();
       }
-    } else {
-      chat.style.height = "0";
-      setTimeout(() => {
-        chat.style.visibility = "hidden";
-      }, 400);
-    }
-    isOpen = !isOpen;
-  }
+    });
 
-  // Funkce pro odeslání zprávy
-  async function sendChatMessage() {
-    const input = document.getElementById("chat-input");
-    const chat = document.getElementById("chat-messages");
-    const message = input.value.trim();
-    if (!message) return;
+    async function sendMessage() {
+      const input = document.getElementById("chat-input");
+      const chat = document.getElementById("chat-messages");
+      const message = input.value.trim();
+      if (!message) return;
 
-    chat.innerHTML += `<div><strong>Ty:</strong> ${message}</div>`;
-    input.value = "";
+      chat.innerHTML += `<div><strong>Ty:</strong> ${message}</div>`;
+      input.value = "";
 
-    try {
-      const res = await fetch("https://elektra-chatbot.onrender.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-      const data = await res.json();
-      if (data.response) {
-        chat.innerHTML += `<div><strong>Elektra:</strong> ${data.response}</div>`;
-      } else {
-        chat.innerHTML += `<div style='color:red;'><strong>Chyba:</strong> ${data.error}</div>`;
+      try {
+        const res = await fetch("https://elektra-chatbot.onrender.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        if (data.response) {
+          chat.innerHTML += `<div><strong>Elektra:</strong> ${data.response}</div>`;
+        } else {
+          chat.innerHTML += `<div style='color:red;'><strong>Chyba:</strong> ${data.error}</div>`;
+        }
+      } catch (err) {
+        chat.innerHTML += `<div style='color:red;'><strong>Chyba připojení:</strong> ${err.message}</div>`;
       }
-    } catch (err) {
-      chat.innerHTML += `<div style='color:red;'><strong>Chyba připojení:</strong> ${err.message}</div>`;
+
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    chat.scrollTop = chat.scrollHeight;
-  }
-
-  // Události
-  bubble.addEventListener("click", toggleChat);
-  document.body.appendChild(bubble);
-  document.body.appendChild(box);
-
-  document.addEventListener("click", (e) => {
-    if (e.target && e.target.id === "chat-send") {
-      sendChatMessage();
-    }
-    if (e.target && e.target.id === "chat-close") {
-      toggleChat();
-    }
-  });
-
-  document.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && document.activeElement.id === "chat-input") {
-      sendChatMessage();
-    }
+    // Animace (CSS vkládáme dynamicky)
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
   });
 })();
-</script>
