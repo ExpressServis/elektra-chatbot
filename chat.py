@@ -24,13 +24,13 @@ def find_relevant_context(message):
     context_parts = []
     keywords = message.lower().split()
 
-    # Vyhledání v produktech (prohledáme title, description, gtin, mpn)
+    # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
     for item in product_data.values():
         text_fields = [
-            item.get("title", ""),
-            item.get("description", ""),
-            item.get("{http://base.google.com/ns/1.0}gtin", ""),
-            item.get("{http://base.google.com/ns/1.0}mpn", ""),
+            str(item.get("title", "") or ""),
+            str(item.get("description", "") or ""),
+            str(item.get("{http://base.google.com/ns/1.0}gtin", "") or ""),
+            str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
         ]
         combined_text = " ".join(text_fields).lower()
         if any(keyword in combined_text for keyword in keywords):
@@ -41,16 +41,19 @@ def find_relevant_context(message):
         if any(keyword in page.get("text", "").lower() for keyword in keywords):
             context_parts.append(page["text"])
 
-    return "\n\n".join(context_parts[:5])  # max 5 výsledků
+    return "\n\n".join(context_parts[:5])  # max 5 shod
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
+
+    if not context.strip():
+        return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
 
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra."},
+                {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra. Odpovídej pouze na základě poskytnutého kontextu."},
                 {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{context}"}
             ]
         )
