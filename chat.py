@@ -70,10 +70,18 @@ def chat_with_openai(message):
                 continue
 
         if relevant_items:
-            slider = ("<div style='display: flex; overflow-x: auto; gap: 10px; padding: 10px 0;'>"
-                      + "".join(relevant_items[:10]) + "</div>")
-            return f"Našla jsem tyto produkty, které by tě mohly zajímat:
-{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
+            slider = (
+                "<div style='position: relative;'>"
+                "<button onclick=\"this.nextElementSibling.scrollBy({left: -300, behavior: 'smooth'})\" "
+                "style='position: absolute; left: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&larr;</button>"
+                "<div style='display: flex; overflow-x: auto; gap: 10px; padding: 10px 40px; scroll-behavior: smooth;'>"
+                + "".join(relevant_items[:10]) +
+                "</div>"
+                "<button onclick=\"this.previousElementSibling.scrollBy({left: 300, behavior: 'smooth'})\" "
+                "style='position: absolute; right: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&rarr;</button>"
+                "</div>"
+            )
+            return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
 
     except Exception as e:
         return f"Chyba při zpracování produktů: {str(e)}"
