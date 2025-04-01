@@ -6,4 +6,3 @@ sqlalchemy
 psycopg2-binary
 nltk
 snowballstemmer
-czech-stemmer @ git+https://github.com/vidavidorra/czech-stemmer.git
