@@ -21,8 +21,9 @@ except Exception:
     page_data = []
 
 # Jednoduchý český stemmer
+
 def stem(word):
-    endings = ['ami', 'emi', 'ovi', 'ému', 'ům', 'ích', 'ích', 'ě', 'í', 'ý', 'a', 'u', 'y', 'e', 'o', 'ů']
+    endings = ['ami', 'emi', 'ovi', 'ému', 'ům', 'ích', 'ě', 'í', 'ý', 'a', 'u', 'y', 'e', 'o', 'ů']
     for end in endings:
         if word.endswith(end) and len(word) > 4:
             return word[:-len(end)]
@@ -32,25 +33,26 @@ def find_relevant_context(message):
     context_parts = []
     keywords = [stem(word.lower()) for word in message.split() if word.strip()]
 
+    # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
     for item in product_data.values():
-        text = " ".join([
-            str(item.get("title", "")),
-            str(item.get("description", "")),
-            str(item.get("{http://base.google.com/ns/1.0}gtin", "")),
-            str(item.get("{http://base.google.com/ns/1.0}mpn", ""))
-        ]).lower()
+        title = str(item.get("title", "") or "")
+        description = str(item.get("description", "") or "")
+        gtin = str(item.get("{http://base.google.com/ns/1.0}gtin", "") or "")
+        mpn = str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
 
-        stemmed_text = " ".join([stem(w) for w in text.split()])
-        if all(keyword in stemmed_text for keyword in keywords):
+        combined_text = f"{title} {description} {gtin} {mpn}".lower()
+        combined_stemmed = " ".join([stem(word) for word in combined_text.split()])
+        if all(keyword in combined_stemmed for keyword in keywords):
             context_parts.append(json.dumps(item, ensure_ascii=False))
 
+    # Vyhledání ve stránkách – kombinujeme title + content
     for page in page_data:
-        page_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
-        stemmed_page = " ".join([stem(w) for w in page_text.split()])
-        if any(keyword in stemmed_page for keyword in keywords):
-            context_parts.append(page_text)
+        full_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
+        full_stemmed = " ".join([stem(word) for word in full_text.split()])
+        if any(keyword in full_stemmed for keyword in keywords):
+            context_parts.append(full_text)
 
-    return "\n\n".join(context_parts[:5])
+    return "\n\n".join(context_parts[:5])  # max 5 shod
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
@@ -58,6 +60,7 @@ def chat_with_openai(message):
     if not context.strip():
         return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
 
+    # Pokusíme se extrahovat produkty z kontextu
     try:
         relevant_items = []
         for part in context.split("\n\n"):
@@ -91,9 +94,11 @@ def chat_with_openai(message):
                 "</div>"
             )
             return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
+
     except Exception as e:
         return f"Chyba při zpracování produktů: {str(e)}"
 
+    # Pokud nenajdeme produkty, pošleme dotaz do AI s kontextem
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
