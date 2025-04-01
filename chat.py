@@ -48,7 +48,7 @@ def find_relevant_context(message):
             product_scored.append((matches, json.dumps(item, ensure_ascii=False)))
 
     product_scored.sort(reverse=True, key=lambda x: x[0])
-    product_context += [item for _, item in product_scored[:5]]
+    product_context += [item for _, item in product_scored[:10]]
 
     page_context = []
     for page in page_data:
@@ -62,8 +62,20 @@ def find_relevant_context(message):
 def chat_with_openai(message):
     product_context, page_context = find_relevant_context(message)
 
-    if not product_context and not page_context:
-        return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
+    result = ""
+
+    if page_context:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra. Odpovídej pouze na základě poskytnutého kontextu."},
+                    {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{chr(10).join(page_context)}"}
+                ]
+            )
+            result += response.choices[0].message.content.strip() + "\n\n"
+        except Exception as e:
+            result += f"Chyba při dotazu do AI: {str(e)}\n"
 
     if product_context:
         relevant_items = []
@@ -97,19 +109,9 @@ def chat_with_openai(message):
                 "style='position: absolute; right: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&rarr;</button>"
                 "</div>"
             )
-            return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
+            result += f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
 
-    if page_context:
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra. Odpovídej pouze na základě poskytnutého kontextu."},
-                    {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{chr(10).join(page_context)}"}
-                ]
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Chyba při dotazu do AI: {str(e)}"
+    if not result.strip():
+        return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
 
-    return "Promiň, na tohle nemám nic konkrétního. Můžeš to zkusit trochu jinak?"
+    return result.strip()
