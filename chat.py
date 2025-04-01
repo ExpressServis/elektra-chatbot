@@ -1,10 +1,10 @@
 import os
 import json
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Načti produkty
 try:
@@ -22,7 +22,7 @@ except Exception:
 
 def find_relevant_context(message):
     context_parts = []
-    
+
     # Vyhledání v produktech
     for item in product_data:
         item_text = json.dumps(item, ensure_ascii=False)
@@ -34,18 +34,19 @@ def find_relevant_context(message):
         if any(word.lower() in page["text"].lower() for word in message.split()):
             context_parts.append(page["text"])
 
-    # Zkrácení kontextu pokud je příliš dlouhý
-    context = "\n\n".join(context_parts[:5])  # vezmeme max 5 výsledků
-    return context
+    return "\n\n".join(context_parts[:5])  # max 5 shod
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra."},
-            {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{context}"}
-        ]
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Jsi přátelský a vtipný asistent jménem Elektra."},
+                {"role": "user", "content": f"Dotaz: {message}\n\nDostupný kontext:\n{context}"}
+            ]
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Chyba: {str(e)}"
