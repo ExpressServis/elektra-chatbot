@@ -73,26 +73,26 @@ for url in URLS:
         html = requests.get(url, timeout=15).text
         soup = BeautifulSoup(html, "html.parser")
 
-        # Odstranit <header> a <footer>
-        for tag in soup.find_all(['header', 'footer']):
+        # Odstranit <header>, <footer>, <nav>, případně jiné zbytečné bloky
+        for tag in soup.find_all(['header', 'footer', 'nav', 'aside']):
             tag.decompose()
 
-        # Vyberte pouze obsah stránky, který není hlavička ani patička
-        # V závislosti na struktuře stránky, upravte selektor pro hlavní obsah
-        content_div = soup.find('div', class_='main-content')  # Příklad selektoru, změňte podle struktury stránky
+        # Vyhledání obsahu ve specifickém divu
+        content_div = soup.find('div', id='snippet--content')
 
         if content_div:
             content = content_div.get_text(separator="\n", strip=True)
         else:
-            # Pokud se nenajde hlavní obsah, vezmeme celé tělo stránky
-            content = soup.body.get_text(separator="\n", strip=True)
+            content = ""  # Pokud není nalezen div, necháme prázdný obsah
 
-        title = soup.title.string.strip() if soup.title else ""
+        # Před uložením, filtrujeme nechtěné informace, pokud nějaké zůstávají
+        filtered_content = "\n".join([line for line in content.splitlines() if line.strip() and len(line.split()) > 2])
 
+        # Uložíme upravený obsah
         output.append({
             "url": url,
-            "title": title,
-            "content": content
+            "title": soup.title.string.strip() if soup.title else "",
+            "content": filtered_content
         })
     except Exception as e:
         print(f"Chyba u {url}: {e}")
