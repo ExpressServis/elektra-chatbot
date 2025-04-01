@@ -26,14 +26,13 @@ def find_relevant_context(message):
 
     # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
     for item in product_data.values():
-        text_fields = [
-            str(item.get("title", "") or ""),
-            str(item.get("description", "") or ""),
-            str(item.get("{http://base.google.com/ns/1.0}gtin", "") or ""),
-            str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
-        ]
-        combined_text = " ".join(text_fields).lower()
-        if any(keyword in combined_text for keyword in keywords):
+        title = str(item.get("title", "") or "")
+        description = str(item.get("description", "") or "")
+        gtin = str(item.get("{http://base.google.com/ns/1.0}gtin", "") or "")
+        mpn = str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
+
+        combined_text = f"{title} {description} {gtin} {mpn}".lower()
+        if all(keyword in combined_text for keyword in keywords):
             context_parts.append(json.dumps(item, ensure_ascii=False))
 
     # Vyhledání ve stránkách
@@ -60,15 +59,21 @@ def chat_with_openai(message):
                 image = item.get("{http://base.google.com/ns/1.0}image_link")
                 if title and link:
                     if image:
-                        relevant_items.append(f'<div style="margin-bottom:10px;"><a href="{link}" target="_blank"><img src="{image}" alt="{title}" style="max-width:100%;border-radius:8px;"><br>{title}</a></div>')
+                        relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
+                                               f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
+                                               f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>{title}'
+                                               f'</a></div>')
                     else:
-                        relevant_items.append(f'- [{title}]({link})')
+                        relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
+                                               f'<a href="{link}" target="_blank">{title}</a></div>')
             except json.JSONDecodeError:
                 continue
 
         if relevant_items:
-            seznam = "\n".join(relevant_items[:5])
-            return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{seznam}\n\nChceš, abych ti ukázala další podobné? 🙂"
+            slider = ("<div style='display: flex; overflow-x: auto; gap: 10px; padding: 10px 0;'>"
+                      + "".join(relevant_items[:10]) + "</div>")
+            return f"Našla jsem tyto produkty, které by tě mohly zajímat:
+{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
 
     except Exception as e:
         return f"Chyba při zpracování produktů: {str(e)}"
