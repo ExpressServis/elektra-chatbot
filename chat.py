@@ -2,10 +2,15 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-from czech_stemmer import stem_word as stem
+import snowballstemmer
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+stemmer = snowballstemmer.stemmer("czech")
+
+def stem(text):
+    return [s for s in stemmer.stemWords(text.split())]
 
 # Načti produkty
 try:
@@ -23,28 +28,27 @@ except Exception:
 
 def find_relevant_context(message):
     context_parts = []
-    keywords = [stem(word.lower()) for word in message.split() if word.strip()]
+    keywords = stem(message.lower())
 
-    # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
     for item in product_data.values():
-        title = str(item.get("title", "") or "")
-        description = str(item.get("description", "") or "")
-        gtin = str(item.get("{http://base.google.com/ns/1.0}gtin", "") or "")
-        mpn = str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
+        text = " ".join([
+            str(item.get("title", "")),
+            str(item.get("description", "")),
+            str(item.get("{http://base.google.com/ns/1.0}gtin", "")),
+            str(item.get("{http://base.google.com/ns/1.0}mpn", ""))
+        ]).lower()
 
-        combined_text = f"{title} {description} {gtin} {mpn}".lower()
-        combined_stemmed = " ".join([stem(word) for word in combined_text.split()])
-        if all(keyword in combined_stemmed for keyword in keywords):
+        stemmed_text = " ".join(stem(text))
+        if all(k in stemmed_text for k in keywords):
             context_parts.append(json.dumps(item, ensure_ascii=False))
 
-    # Vyhledání ve stránkách – kombinujeme title + content
     for page in page_data:
-        full_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
-        full_stemmed = " ".join([stem(word) for word in full_text.split()])
-        if any(keyword in full_stemmed for keyword in keywords):
-            context_parts.append(full_text)
+        text = f"{page.get('title', '')} {page.get('content', '')}".lower()
+        stemmed_text = " ".join(stem(text))
+        if any(k in stemmed_text for k in keywords):
+            context_parts.append(text)
 
-    return "\n\n".join(context_parts[:5])  # max 5 shod
+    return "\n\n".join(context_parts[:5])
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
@@ -52,7 +56,6 @@ def chat_with_openai(message):
     if not context.strip():
         return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
 
-    # Pokusíme se extrahovat produkty z kontextu
     try:
         relevant_items = []
         for part in context.split("\n\n"):
@@ -64,12 +67,12 @@ def chat_with_openai(message):
                 if title and link:
                     if image:
                         relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
-                                               f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
-                                               f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>{title}'
-                                               f'</a></div>')
+                                              f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
+                                              f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>{title}'
+                                              f'</a></div>')
                     else:
                         relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
-                                               f'<a href="{link}" target="_blank">{title}</a></div>')
+                                              f'<a href="{link}" target="_blank">{title}</a></div>')
             except json.JSONDecodeError:
                 continue
 
@@ -90,7 +93,6 @@ def chat_with_openai(message):
     except Exception as e:
         return f"Chyba při zpracování produktů: {str(e)}"
 
-    # Pokud nenajdeme produkty, pošleme dotaz do AI s kontextem
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
