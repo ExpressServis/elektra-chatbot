@@ -49,6 +49,31 @@ def chat_with_openai(message):
     if not context.strip():
         return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
 
+    # Pokusíme se extrahovat produkty z kontextu
+    try:
+        relevant_items = []
+        for part in context.split("\n\n"):
+            try:
+                item = json.loads(part)
+                title = item.get("title")
+                link = item.get("link")
+                image = item.get("{http://base.google.com/ns/1.0}image_link")
+                if title and link:
+                    if image:
+                        relevant_items.append(f'<div style="margin-bottom:10px;"><a href="{link}" target="_blank"><img src="{image}" alt="{title}" style="max-width:100%;border-radius:8px;"><br>{title}</a></div>')
+                    else:
+                        relevant_items.append(f'- [{title}]({link})')
+            except json.JSONDecodeError:
+                continue
+
+        if relevant_items:
+            seznam = "\n".join(relevant_items[:5])
+            return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{seznam}\n\nChceš, abych ti ukázala další podobné? 🙂"
+
+    except Exception as e:
+        return f"Chyba při zpracování produktů: {str(e)}"
+
+    # Pokud nenajdeme produkty, pošleme dotaz do AI s kontextem
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
