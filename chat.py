@@ -29,10 +29,11 @@ def find_relevant_context(message):
         if any(word.lower() in item_text.lower() for word in message.split()):
             context_parts.append(item_text)
 
-    # Vyhledání ve stránkách
+    # Vyhledání ve stránkách s bezpečnostním ošetřením
     for page in page_data:
-        if any(word.lower() in page["text"].lower() for word in message.split()):
-            context_parts.append(page["text"])
+        text = page.get("text", "")
+        if any(word.lower() in text.lower() for word in message.split()):
+            context_parts.append(text)
 
     return "\n\n".join(context_parts[:5])  # max 5 shod
 
