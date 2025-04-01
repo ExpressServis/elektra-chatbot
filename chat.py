@@ -57,7 +57,7 @@ def find_relevant_context(message):
         if any(keyword in full_stemmed for keyword in keywords):
             page_context.append(full_text)
 
-    return product_context, page_context[:3]  # vracíme zvlášť produkty i stránky
+    return product_context, page_context[:3]
 
 def chat_with_openai(message):
     product_context, page_context = find_relevant_context(message)
@@ -96,8 +96,7 @@ def chat_with_openai(message):
             "style='position: absolute; right: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&rarr;</button>"
             "</div>"
         )
-        return f"Našla jsem tyto produkty, které by tě mohly zajímat:
-{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
+        return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
 
     if page_context:
         try:
