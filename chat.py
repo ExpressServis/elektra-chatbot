@@ -52,12 +52,12 @@ def find_relevant_context(message):
     product_context += [item for _, item in product_scored[:5]]
 
     page_context = []
-    # Procházení statických stránek a hledání shod
+    # Procházení statických stránek a hledání shod pouze na relevantních stránkách (např. doprava)
     for page in page_data:
         full_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
         full_stemmed = " ".join([stem(word) for word in full_text.split()])
         if any(keyword in full_stemmed for keyword in keywords):
-            page_context.append((page.get("content", ""), page.get("url", "")))
+            page_context.append((page.get("content", ""), page.get("url", ""), page.get("title", "")))
 
     return product_context, page_context[:3]
 
@@ -69,7 +69,7 @@ def chat_with_openai(message):
     # Nejprve zkusíme odpovědět na základě statických stránek
     if page_context:
         try:
-            page_texts = [text for text, _ in page_context]
+            page_texts = [text for text, _, _ in page_context]
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -78,7 +78,11 @@ def chat_with_openai(message):
                 ]
             )
             result += response.choices[0].message.content.strip()
-            odkazy = [f'<br><a href="{url}" target="_blank" style="color:#0066cc">Více na stránce</a>' for _, url in page_context if url]
+            
+            odkazy = [
+                f'<br><a href="{url}" target="_blank" style="color:#0066cc">{title}</a>' 
+                for _, url, title in page_context if url
+            ]
             if odkazy:
                 result += "<br>" + "".join(odkazy)
             return result.strip()
