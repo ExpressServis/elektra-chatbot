@@ -77,8 +77,17 @@ for url in URLS:
         for tag in soup.find_all(['header', 'footer']):
             tag.decompose()
 
+        # Vyberte pouze obsah stránky, který není hlavička ani patička
+        # V závislosti na struktuře stránky, upravte selektor pro hlavní obsah
+        content_div = soup.find('div', class_='main-content')  # Příklad selektoru, změňte podle struktury stránky
+
+        if content_div:
+            content = content_div.get_text(separator="\n", strip=True)
+        else:
+            # Pokud se nenajde hlavní obsah, vezmeme celé tělo stránky
+            content = soup.body.get_text(separator="\n", strip=True)
+
         title = soup.title.string.strip() if soup.title else ""
-        content = soup.body.get_text(separator="\n", strip=True) if soup.body else ""
 
         output.append({
             "url": url,
