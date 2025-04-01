@@ -2,11 +2,10 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-from nltk.stem.snowball import SnowballStemmer
+from czech_stemmer import stem_word as stem
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-stemmer = SnowballStemmer("czech")
 
 # Načti produkty
 try:
@@ -24,7 +23,7 @@ except Exception:
 
 def find_relevant_context(message):
     context_parts = []
-    keywords = [stemmer.stem(word.lower()) for word in message.split() if word.strip()]
+    keywords = [stem(word.lower()) for word in message.split() if word.strip()]
 
     # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
     for item in product_data.values():
@@ -34,14 +33,14 @@ def find_relevant_context(message):
         mpn = str(item.get("{http://base.google.com/ns/1.0}mpn", "") or "")
 
         combined_text = f"{title} {description} {gtin} {mpn}".lower()
-        combined_stemmed = " ".join([stemmer.stem(word) for word in combined_text.split()])
+        combined_stemmed = " ".join([stem(word) for word in combined_text.split()])
         if all(keyword in combined_stemmed for keyword in keywords):
             context_parts.append(json.dumps(item, ensure_ascii=False))
 
     # Vyhledání ve stránkách – kombinujeme title + content
     for page in page_data:
         full_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
-        full_stemmed = " ".join([stemmer.stem(word) for word in full_text.split()])
+        full_stemmed = " ".join([stem(word) for word in full_text.split()])
         if any(keyword in full_stemmed for keyword in keywords):
             context_parts.append(full_text)
 
