@@ -33,7 +33,8 @@ def find_relevant_context(message):
     context_parts = []
     keywords = [stem(word.lower()) for word in message.split() if word.strip()]
 
-    # Vyhledání v produktech – prohledáme název, popis, EAN, produktové číslo
+    scored_items = []
+
     for item in product_data.values():
         title = str(item.get("title", "") or "")
         description = str(item.get("description", "") or "")
@@ -42,17 +43,23 @@ def find_relevant_context(message):
 
         combined_text = f"{title} {description} {gtin} {mpn}".lower()
         combined_stemmed = " ".join([stem(word) for word in combined_text.split()])
-        if all(keyword in combined_stemmed for keyword in keywords):
-            context_parts.append(json.dumps(item, ensure_ascii=False))
 
-    # Vyhledání ve stránkách – kombinujeme title + content
+        matches = sum(1 for keyword in keywords if keyword in combined_stemmed)
+        if matches > 0:
+            scored_items.append((matches, json.dumps(item, ensure_ascii=False)))
+
+    # Seřadíme dle relevance (počtu shod)
+    scored_items.sort(reverse=True, key=lambda x: x[0])
+    context_parts += [item for _, item in scored_items[:5]]
+
+    # Vyhledání ve stránkách
     for page in page_data:
         full_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
         full_stemmed = " ".join([stem(word) for word in full_text.split()])
         if any(keyword in full_stemmed for keyword in keywords):
             context_parts.append(full_text)
 
-    return "\n\n".join(context_parts[:5])  # max 5 shod
+    return "\n\n".join(context_parts[:5])
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
