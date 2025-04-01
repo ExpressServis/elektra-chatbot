@@ -61,13 +61,57 @@ def find_relevant_context(message):
 
     return product_context, page_context[:3]
 
+def is_product_query(message):
+    # Pokud dotaz obsahuje konkrétní produkt, například "baterie iPhone 12 mini"
+    return "baterie" in message.lower() and "iphone" in message.lower()
+
 def chat_with_openai(message):
     product_context, page_context = find_relevant_context(message)
 
     result = ""
 
-    # Nejprve zkusíme odpovědět na základě statických stránek
-    if page_context:
+    # Pokud se jedná o dotaz na produkt (např. baterie pro iPhone)
+    if is_product_query(message):
+        if product_context:
+            relevant_items = []
+            for part in product_context:
+                try:
+                    item = json.loads(part)
+                    title = item.get("title")
+                    link = item.get("link")
+                    image = item.get("{http://base.google.com/ns/1.0}image_link")
+                    if title and link:
+                        block = (
+                            f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
+                            f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
+                        )
+                        if image:
+                            block += f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>'
+                        block += f'{title}</a></div>'
+                        relevant_items.append(block)
+                except json.JSONDecodeError:
+                    continue
+
+            if relevant_items:
+                slider = (
+                    "<div style='position: relative;'>"
+                    "<button onclick=\"this.nextElementSibling.scrollBy({left: -300, behavior: 'smooth'})\" "
+                    "style='position: absolute; left: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&larr;</button>"
+                    "<div style='display: flex; overflow-x: auto; gap: 10px; padding: 10px 40px; scroll-behavior: smooth;'>"
+                    + "".join(relevant_items[:10]) +
+                    "</div>"
+                    "<button onclick=\"this.previousElementSibling.scrollBy({left: 300, behavior: 'smooth'})\" "
+                    "style='position: absolute; right: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&rarr;</button>"
+                    "</div>"
+                )
+                result += f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
+            else:
+                result += "Bohužel jsem nenašla žádné baterie pro iPhone 12. Zkus prosím jiný dotaz nebo se podívej na naši nabídku na webu."
+        else:
+            result += "Bohužel nemáme informace o baterii pro iPhone 12 mini v našem systému."
+
+    # Pokud dotaz nesouvisí s produkty, odpovídáme na základě informací
+    if not result.strip() and page_context:
         try:
             page_texts = [text for text, _, _ in page_context]
             response = client.chat.completions.create(
@@ -78,51 +122,14 @@ def chat_with_openai(message):
                 ]
             )
             result += response.choices[0].message.content.strip()
-            
             odkazy = [
                 f'<br><a href="{url}" target="_blank" style="color:#0066cc">{title}</a>' 
                 for _, url, title in page_context if url
             ]
             if odkazy:
                 result += "<br>" + "".join(odkazy)
-            return result.strip()
         except Exception as e:
             result += f"Chyba při dotazu do AI: {str(e)}\n"
-
-    # Pokud nebyla odpověď ze statických stránek, můžeme zobrazit produkty
-    if product_context:
-        relevant_items = []
-        for part in product_context:
-            try:
-                item = json.loads(part)
-                title = item.get("title")
-                link = item.get("link")
-                image = item.get("{http://base.google.com/ns/1.0}image_link")
-                if title and link:
-                    block = (
-                        f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
-                        f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
-                    )
-                    if image:
-                        block += f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>'
-                    block += f'{title}</a></div>'
-                    relevant_items.append(block)
-            except json.JSONDecodeError:
-                continue
-
-        if relevant_items:
-            slider = (
-                "<div style='position: relative;'>"
-                "<button onclick=\"this.nextElementSibling.scrollBy({left: -300, behavior: 'smooth'})\" "
-                "style='position: absolute; left: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&larr;</button>"
-                "<div style='display: flex; overflow-x: auto; gap: 10px; padding: 10px 40px; scroll-behavior: smooth;'>"
-                + "".join(relevant_items[:10]) +
-                "</div>"
-                "<button onclick=\"this.previousElementSibling.scrollBy({left: 300, behavior: 'smooth'})\" "
-                "style='position: absolute; right: 0; top: 40%; transform: translateY(-50%); z-index: 1; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;'>&rarr;</button>"
-                "</div>"
-            )
-            result += f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
 
     if not result.strip():
         return "Promiň, na tohle na našem webu nemám žádné informace. Zkus to prosím jinak."
