@@ -49,10 +49,10 @@ document.addEventListener("DOMContentLoaded", function () {
     box.style.overflow = "hidden";
 
     box.innerHTML = `
-      <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;">Elektra 💬</div>
+      <div style="background:#000;color:white;padding:10px 15px;font-weight:bold;">Jsme Elektra, chytrý AI pomocník 💬</div>
       <div id="chat-messages" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
       <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:5px;">
-        <input id="chat-input" type="text" placeholder="Napiš dotaz..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;">
+        <input id="chat-input" type="text" placeholder="Napište dotaz..." style="flex:1;padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px;">
         <button id="chat-send" style="padding:8px 12px;background:#000;color:white;border:none;border-radius:8px;cursor:pointer;">Odeslat</button>
       </div>
     `;
