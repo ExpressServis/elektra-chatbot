@@ -22,20 +22,26 @@ except Exception:
 
 def find_relevant_context(message):
     context_parts = []
+    keywords = message.lower().split()
 
-    # Vyhledání v produktech
-    for item in product_data:
-        item_text = json.dumps(item, ensure_ascii=False)
-        if any(word.lower() in item_text.lower() for word in message.split()):
-            context_parts.append(item_text)
+    # Vyhledání v produktech (prohledáme title, description, gtin, mpn)
+    for item in product_data.values():
+        text_fields = [
+            item.get("title", ""),
+            item.get("description", ""),
+            item.get("{http://base.google.com/ns/1.0}gtin", ""),
+            item.get("{http://base.google.com/ns/1.0}mpn", ""),
+        ]
+        combined_text = " ".join(text_fields).lower()
+        if any(keyword in combined_text for keyword in keywords):
+            context_parts.append(json.dumps(item, ensure_ascii=False))
 
-    # Vyhledání ve stránkách s bezpečnostním ošetřením
+    # Vyhledání ve stránkách
     for page in page_data:
-        text = page.get("text", "")
-        if any(word.lower() in text.lower() for word in message.split()):
-            context_parts.append(text)
+        if any(keyword in page.get("text", "").lower() for keyword in keywords):
+            context_parts.append(page["text"])
 
-    return "\n\n".join(context_parts[:5])  # max 5 shod
+    return "\n\n".join(context_parts[:5])  # max 5 výsledků
 
 def chat_with_openai(message):
     context = find_relevant_context(message)
