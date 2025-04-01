@@ -85,8 +85,11 @@ for url in URLS:
         else:
             content = ""  # Pokud není nalezen div, necháme prázdný obsah
 
+        # Odstranit všechny "\n" (nové řádky)
+        cleaned_content = content.replace("\n", " ")  # Nahradíme '\n' mezerou
+
         # Před uložením, filtrujeme nechtěné informace, pokud nějaké zůstávají
-        filtered_content = "\n".join([line for line in content.splitlines() if line.strip() and len(line.split()) > 2])
+        filtered_content = "\n".join([line for line in cleaned_content.splitlines() if line.strip() and len(line.split()) > 2])
 
         # Uložíme upravený obsah
         output.append({
