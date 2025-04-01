@@ -2,15 +2,9 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-import snowballstemmer
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-stemmer = snowballstemmer.stemmer("czech")
-
-def stem(text):
-    return [s for s in stemmer.stemWords(text.split())]
 
 # Načti produkty
 try:
@@ -26,9 +20,17 @@ try:
 except Exception:
     page_data = []
 
+# Jednoduchý český stemmer
+def stem(word):
+    endings = ['ami', 'emi', 'ovi', 'ému', 'ům', 'ích', 'ích', 'ě', 'í', 'ý', 'a', 'u', 'y', 'e', 'o', 'ů']
+    for end in endings:
+        if word.endswith(end) and len(word) > 4:
+            return word[:-len(end)]
+    return word
+
 def find_relevant_context(message):
     context_parts = []
-    keywords = stem(message.lower())
+    keywords = [stem(word.lower()) for word in message.split() if word.strip()]
 
     for item in product_data.values():
         text = " ".join([
@@ -38,15 +40,15 @@ def find_relevant_context(message):
             str(item.get("{http://base.google.com/ns/1.0}mpn", ""))
         ]).lower()
 
-        stemmed_text = " ".join(stem(text))
-        if all(k in stemmed_text for k in keywords):
+        stemmed_text = " ".join([stem(w) for w in text.split()])
+        if all(keyword in stemmed_text for keyword in keywords):
             context_parts.append(json.dumps(item, ensure_ascii=False))
 
     for page in page_data:
-        text = f"{page.get('title', '')} {page.get('content', '')}".lower()
-        stemmed_text = " ".join(stem(text))
-        if any(k in stemmed_text for k in keywords):
-            context_parts.append(text)
+        page_text = f"{page.get('title', '')} {page.get('content', '')}".lower()
+        stemmed_page = " ".join([stem(w) for w in page_text.split()])
+        if any(keyword in stemmed_page for keyword in keywords):
+            context_parts.append(page_text)
 
     return "\n\n".join(context_parts[:5])
 
@@ -67,12 +69,12 @@ def chat_with_openai(message):
                 if title and link:
                     if image:
                         relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
-                                              f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
-                                              f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>{title}'
-                                              f'</a></div>')
+                                               f'<a href="{link}" target="_blank" style="text-decoration: none; color: #000;">'
+                                               f'<img src="{image}" alt="{title}" style="width: 100px; height: auto; border-radius: 8px;"><br>{title}'
+                                               f'</a></div>')
                     else:
                         relevant_items.append(f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
-                                              f'<a href="{link}" target="_blank">{title}</a></div>')
+                                               f'<a href="{link}" target="_blank">{title}</a></div>')
             except json.JSONDecodeError:
                 continue
 
@@ -89,7 +91,6 @@ def chat_with_openai(message):
                 "</div>"
             )
             return f"Našla jsem tyto produkty, které by tě mohly zajímat:\n{slider}\n\nChceš, abych ti ukázala další podobné? 🙂"
-
     except Exception as e:
         return f"Chyba při zpracování produktů: {str(e)}"
 
