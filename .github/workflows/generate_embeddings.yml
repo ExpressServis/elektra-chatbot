@@ -21,7 +21,8 @@ jobs:
 
       - name: Run embedding script
         run: |
-          python scripts/generate_embeddings.py
+          python - name: Run embedding script
+          run: python elektra-chatbot/scripts/generate_embeddings.py
 
       - name: Commit updated embeddings
         run: |
