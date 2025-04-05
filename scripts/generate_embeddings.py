@@ -18,6 +18,23 @@ def get_embedding(text):
         print(f"❌ Chyba při generování embeddingu: {e}")
         return []
 
+def validate_embeddings(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if not data:
+                print(f"⚠️ Soubor {file_path} je prázdný nebo neobsahuje žádné položky.")
+                return False
+            for item in data:
+                if not item.get("embedding") or len(item["embedding"]) != 1536:
+                    print(f"⚠️ Nevalidní embedding v souboru {file_path}.")
+                    return False
+        print(f"✅ Validace embeddingu úspěšná: {file_path}")
+        return True
+    except Exception as e:
+        print(f"❌ Chyba při validaci {file_path}: {e}")
+        return False
+
 def embed_and_save(input_file, output_file, text_fields):
     try:
         with open(input_file, "r", encoding="utf-8") as f:
@@ -47,6 +64,8 @@ def embed_and_save(input_file, output_file, text_fields):
         print(f"✅ Uloženo do {output_file}")
     except Exception as e:
         print(f"❌ Nelze uložit do {output_file}: {e}")
+
+    validate_embeddings(output_file)
 
 if __name__ == "__main__":
     embed_and_save("data/products.json", "data/products_embeddings.json", ["title", "description"])
