@@ -8,3 +8,4 @@ nltk
 snowballstemmer
 requests
 beautifulsoup4
+scikit-learn
