@@ -6,7 +6,7 @@ on:
 jobs:
   embeddings:
     runs-on: ubuntu-latest
-    env:  # <-- přidá proměnné do všech kroků v jobu
+    env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
@@ -19,12 +19,13 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
+
+      - name: Debug API Key (dočasné)
+        run: echo "✅ OPENAI_API_KEY je načten: ${OPENAI_API_KEY::4}****"
 
       - name: Run embedding script
-        run: |
-          python scripts/generate_embeddings.py
+        run: python scripts/generate_embeddings.py
 
       - name: Commit updated embeddings
         run: |
