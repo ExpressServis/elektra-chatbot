@@ -9,3 +9,4 @@ snowballstemmer
 requests
 beautifulsoup4
 scikit-learn
+tqdm
