@@ -5,7 +5,13 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 load_dotenv()
-client = OpenAI()  # OPENAI_API_KEY se načítá automaticky z prostředí
+
+# Bezpečně načteme klíč z prostředí a ověříme
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("❌ OPENAI_API_KEY není nastaven v prostředí. Přidejte jej do GitHub Secrets nebo .env souboru.")
+
+client = OpenAI(api_key=api_key)
 
 def get_embedding(text):
     try:
