@@ -22,7 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run embedding script
-        run: python elektra-chatbot/scripts/generate_embeddings.py
+        run: python scripts/generate_embeddings.py
 
       - name: Commit updated embeddings
         run: |
