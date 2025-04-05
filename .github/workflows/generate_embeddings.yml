@@ -6,8 +6,9 @@ on:
 jobs:
   embeddings:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -19,10 +20,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Debug - list files
+        run: |
+          pwd
+          ls -la
+          ls -la scripts
+
       - name: Run embedding script
         run: |
-          python - name: Run embedding script
-          run: python elektra-chatbot/scripts/generate_embeddings.py
+          python scripts/generate_embeddings.py
 
       - name: Commit updated embeddings
         run: |
