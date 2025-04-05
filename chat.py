@@ -122,6 +122,7 @@ def chat_with_openai(message):
                 ]
             )
             result += response.choices[0].message.content.strip()
+            
             odkazy = [
                 f'<br><a href="{url}" target="_blank" style="color:#0066cc">{title}</a>' 
                 for _, url, title in page_context if url
