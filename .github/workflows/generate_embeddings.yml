@@ -6,8 +6,6 @@ on:
 jobs:
   embeddings:
     runs-on: ubuntu-latest
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # ← Tady se klíč vloží do prostředí
 
     steps:
       - name: Checkout
@@ -19,10 +17,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run embedding script
+        env:  # ← TADY DOPLŇUJEME SECRET DO ENV
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python scripts/generate_embeddings.py
 
