@@ -4,42 +4,31 @@ import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 from typing import List
+from faiss_utils import load_index, search_similar
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Načti produkty
-try:
-    with open("data/products.json", "r", encoding="utf-8") as f:
-        product_data = json.load(f)
-except Exception:
-    product_data = []
+# Načti data
+def load_json(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
 
-# Načti embeddingy produktů
-try:
-    with open("data/products_embeddings.json", "r", encoding="utf-8") as f:
-        product_embeddings = json.load(f)
-except Exception:
-    product_embeddings = []
+product_embeddings = load_json("data/products_embeddings.json")
+page_embeddings = load_json("data/pages_embeddings.json")
 
-# Načti statické stránky
 try:
-    with open("data/pages.json", "r", encoding="utf-8") as f:
-        page_data = json.load(f)
+    product_index = load_index("data/faiss_product_index.bin")
 except Exception:
-    page_data = []
+    product_index = None
 
-# Načti embeddingy stránek
 try:
-    with open("data/pages_embeddings.json", "r", encoding="utf-8") as f:
-        page_embeddings = json.load(f)
+    page_index = load_index("data/faiss_page_index.bin")
 except Exception:
-    page_embeddings = []
-
-# Spočítá kosinovou podobnost
-def cosine_similarity(a: List[float], b: List[float]) -> float:
-    a, b = np.array(a), np.array(b)
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    page_index = None
 
 # Vytvoření embeddingu pro dotaz
 def get_query_embedding(text: str) -> List[float]:
@@ -49,15 +38,14 @@ def get_query_embedding(text: str) -> List[float]:
     )
     return response.data[0].embedding
 
-# Hledání nejrelevantnějších embeddingů
-def find_top_matches(query: str, embeddings_data: List[dict], top_k: int = 5):
+# Vyhledávání pomocí Faiss
+def find_top_matches_faiss(query: str, index, embeddings_data: List[dict], top_k: int = 5):
+    if index is None:
+        return []
     query_vector = get_query_embedding(query)
-    scored = []
-    for item in embeddings_data:
-        similarity = cosine_similarity(query_vector, item["embedding"])
-        scored.append((similarity, item))
-    scored.sort(reverse=True, key=lambda x: x[0])
-    return [item for _, item in scored[:top_k]]
+    query_np = np.array(query_vector, dtype=np.float32).reshape(1, -1)
+    distances, indices = search_similar(query_np, index, top_k)
+    return [embeddings_data[i] for i in indices[0]]
 
 def is_product_query(message):
     return "baterie" in message.lower() or "displej" in message.lower() or "iphone" in message.lower()
@@ -65,8 +53,8 @@ def is_product_query(message):
 def chat_with_openai(message):
     result = ""
 
-    # Zkusíme najít nejrelevantnější stránky
-    relevant_pages = find_top_matches(message, page_embeddings)
+    # Kontext z webových stránek
+    relevant_pages = find_top_matches_faiss(message, page_index, page_embeddings)
     if relevant_pages:
         try:
             context = "\n\n".join([p["content"] for p in relevant_pages])
@@ -79,23 +67,24 @@ def chat_with_openai(message):
             )
             result += response.choices[0].message.content.strip()
             odkazy = [
-                f'<br><a href="{p["url"]}" target="_blank" style="color:#0066cc">{p["title"]}</a>'
-                for p in relevant_pages if p.get("url")
+                f'<br><a href="{p["meta"].get("url")}" target="_blank" style="color:#0066cc">{p["meta"].get("title")}</a>'
+                for p in relevant_pages if p["meta"].get("url")
             ]
             if odkazy:
                 result += "<br>" + "".join(odkazy)
         except Exception as e:
             result += f"Chyba při dotazu do AI: {str(e)}"
 
-    # Pokud dotaz je produktový nebo nic nenalezeno, zobraz produkty
+    # Pokud dotaz je produktový nebo nic nenalezeno
     if is_product_query(message) or not result.strip():
-        relevant_products = find_top_matches(message, product_embeddings)
+        relevant_products = find_top_matches_faiss(message, product_index, product_embeddings)
         if relevant_products:
             relevant_items = []
             for item in relevant_products:
-                title = item.get("title")
-                link = item.get("link")
-                image = item.get("{http://base.google.com/ns/1.0}image_link")
+                meta = item["meta"]
+                title = meta.get("title")
+                link = meta.get("link")
+                image = meta.get("{http://base.google.com/ns/1.0}image_link")
                 if title and link:
                     block = (
                         f'<div style="flex: 0 0 auto; width: 160px; margin-right: 10px; text-align: center; font-size: 13px;">'
