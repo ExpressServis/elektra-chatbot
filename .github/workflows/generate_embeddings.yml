@@ -16,11 +16,11 @@ jobs:
           sudo apt-get install git-lfs
           git lfs install
 
-      - name: Checkout repository
+      - name: Checkout embeddings-update branch
         uses: actions/checkout@v3
         with:
+          ref: embeddings-update
           lfs: true
-          ref: embeddings-update  # Checkoutneme nebo vytvoříme větev embeddings-update
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -33,7 +33,7 @@ jobs:
       - name: Run embedding script (TEST MODE)
         run: python scripts/generate_embeddings.py --test
 
-      - name: Commit and push to embeddings-update branch
+      - name: Commit updated embeddings to embeddings-update
         run: |
           git config --global user.name "Elektra Bot"
           git config --global user.email "bot@elektra.local"
@@ -42,12 +42,12 @@ jobs:
           git commit -m "🧠 Automatická aktualizace embeddingů (test)" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git embeddings-update
 
-      - name: Create or update Pull Request
+      - name: Create or update Pull Request to main
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GH_TOKEN }}
           branch: embeddings-update
           title: "🔁 Automatická aktualizace embeddingů"
           body: |
-            Tento PR obsahuje nové embeddingy a Faiss indexy vygenerované pomocí GitHub Actions.
+            Tento Pull Request obsahuje nové embeddingy a Faiss indexy vygenerované pomocí GitHub Actions.
           base: main
