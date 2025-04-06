@@ -1,9 +1,13 @@
 import os
+import sys
 import json
 import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 from tqdm import tqdm
+
+# Přidání cesty k rootu projektu, aby šel importovat faiss_utils
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from faiss_utils import create_faiss_index, save_index
 
 load_dotenv()
@@ -83,5 +87,15 @@ def embed_and_save(input_file, output_json_file, index_output_file, text_fields)
         print(f"❌ Chyba při ukládání Faiss indexu: {e}")
 
 if __name__ == "__main__":
-    embed_and_save("data/products.json", "data/products_embeddings.json", "data/faiss_product_index.bin", ["title", "description"])
-    embed_and_save("data/pages.json", "data/pages_embeddings.json", "data/faiss_page_index.bin", ["title", "content"])
+    embed_and_save(
+        "data/products.json",
+        "data/products_embeddings.json",
+        "data/faiss_product_index.bin",
+        ["title", "description"]
+    )
+    embed_and_save(
+        "data/pages.json",
+        "data/pages_embeddings.json",
+        "data/faiss_page_index.bin",
+        ["title", "content"]
+    )
