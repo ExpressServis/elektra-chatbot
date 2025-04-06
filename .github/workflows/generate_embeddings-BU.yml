@@ -1,4 +1,4 @@
-name: Generate Embeddings
+name: Generate Embeddings BU
 
 on:
   workflow_dispatch:
