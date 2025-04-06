@@ -36,6 +36,8 @@ jobs:
         run: |
           git config --global user.name "Elektra Bot"
           git config --global user.email "bot@elektra.local"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git pull --rebase origin main
           git add data/*embeddings.json data/*.bin
           git commit -m "🧠 Automatická aktualizace embeddingů" || echo "No changes"
-          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          git push origin HEAD:main
