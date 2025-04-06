@@ -1,15 +1,16 @@
 import os
 import json
+import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 from tqdm import tqdm
+from faiss_utils import create_faiss_index, save_index
 
 load_dotenv()
 
-# Bezpečně načteme klíč z prostředí a ověříme
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    raise ValueError("❌ OPENAI_API_KEY není nastaven v prostředí. Přidejte jej do GitHub Secrets nebo .env souboru.")
+    raise ValueError("❌ OPENAI_API_KEY není nastaven v prostředí.")
 
 client = OpenAI(api_key=api_key)
 
@@ -28,9 +29,6 @@ def validate_embeddings(file_path):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            if not data:
-                print(f"⚠️ Soubor {file_path} je prázdný nebo neobsahuje žádné položky.")
-                return False
             for item in data:
                 if not item.get("embedding") or len(item["embedding"]) != 1536:
                     print(f"⚠️ Nevalidní embedding v souboru {file_path}.")
@@ -41,7 +39,7 @@ def validate_embeddings(file_path):
         print(f"❌ Chyba při validaci {file_path}: {e}")
         return False
 
-def embed_and_save(input_file, output_file, text_fields):
+def embed_and_save(input_file, output_json_file, index_output_file, text_fields):
     try:
         with open(input_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -50,6 +48,7 @@ def embed_and_save(input_file, output_file, text_fields):
         return
 
     embedded_data = []
+    vectors = []
     for item in tqdm(data if isinstance(data, list) else data.values(), desc=f"Generuji embeddingy pro {input_file}"):
         try:
             content = " ".join(str(item.get(field, "")) for field in text_fields).strip()
@@ -60,19 +59,29 @@ def embed_and_save(input_file, output_file, text_fields):
                     "content": content,
                     "meta": item
                 })
+                vectors.append(embedding)
         except Exception as e:
             print(f"⚠️ Chyba při zpracování položky: {e}")
             continue
 
     try:
-        with open(output_file, "w", encoding="utf-8") as f:
+        with open(output_json_file, "w", encoding="utf-8") as f:
             json.dump(embedded_data, f, ensure_ascii=False, indent=2)
-        print(f"✅ Uloženo do {output_file}")
+        print(f"✅ Uloženo do {output_json_file}")
     except Exception as e:
-        print(f"❌ Nelze uložit do {output_file}: {e}")
+        print(f"❌ Nelze uložit do {output_json_file}: {e}")
 
-    validate_embeddings(output_file)
+    validate_embeddings(output_json_file)
+
+    # Uložení Faiss indexu
+    try:
+        vectors_np = np.array(vectors, dtype=np.float32)
+        index = create_faiss_index(vectors_np)
+        save_index(index, index_output_file)
+        print(f"✅ Faiss index uložen do {index_output_file}")
+    except Exception as e:
+        print(f"❌ Chyba při ukládání Faiss indexu: {e}")
 
 if __name__ == "__main__":
-    embed_and_save("data/products.json", "data/products_embeddings.json", ["title", "description"])
-    embed_and_save("data/pages.json", "data/pages_embeddings.json", ["title", "content"])
+    embed_and_save("data/products.json", "data/products_embeddings.json", "data/faiss_product_index.bin", ["title", "description"])
+    embed_and_save("data/pages.json", "data/pages_embeddings.json", "data/faiss_page_index.bin", ["title", "content"])
