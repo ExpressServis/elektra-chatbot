@@ -1,0 +1,41 @@
+name: Generate Embeddings
+
+on:
+  workflow_dispatch:
+
+jobs:
+  embeddings:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Install Git LFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install git-lfs
+          git lfs install
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run embedding script
+        run: python scripts/generate_embeddings.py
+
+      - name: Commit updated embeddings
+        run: |
+          git config --global user.name "Elektra Bot"
+          git config --global user.email "bot@elektra.local"
+          git add data/*embeddings.json
+          git commit -m "🧠 Automatická aktualizace embeddingů" || echo "No changes"
+          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
