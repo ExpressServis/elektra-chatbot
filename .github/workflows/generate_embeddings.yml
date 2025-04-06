@@ -16,7 +16,7 @@ jobs:
           sudo apt-get install git-lfs
           git lfs install
 
-      - name: Checkout embeddings-update branch
+      - name: Checkout or create embeddings-update branch
         uses: actions/checkout@v3
         with:
           ref: embeddings-update
