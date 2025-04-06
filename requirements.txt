@@ -10,3 +10,4 @@ requests
 beautifulsoup4
 scikit-learn
 tqdm
+faiss-cpu==1.10.0
