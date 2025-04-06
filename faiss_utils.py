@@ -2,8 +2,8 @@ import faiss
 import numpy as np
 
 def create_faiss_index(embeddings: np.ndarray) -> faiss.Index:
-    d = embeddings.shape[1]  # Dimenze embeddingů
-    index = faiss.IndexFlatL2(d)  # Index založený na L2 vzdálenosti
+    d = embeddings.shape[1]
+    index = faiss.IndexFlatL2(d)
     index.add(embeddings)
     return index
 
